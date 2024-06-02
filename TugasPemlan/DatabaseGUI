@@ -1,0 +1,137 @@
+package LatGUIPemlan;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.sql.*;
+
+public class DatabaseGUI extends JFrame {
+    private JTable table;
+    private JTextField nameField;
+    private JTextField ageField;
+    private JButton addButton;
+    private DefaultTableModel tableModel;
+
+    public DatabaseGUI() {
+        DatabaseConnection.createTable();
+
+        setTitle("Database GUI");
+        setSize(720, 720);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout());
+
+        getContentPane().setBackground(Color.BLACK);
+
+        tableModel = new DefaultTableModel(new Object[]{"No", "Nama", "Umur"}, 0);
+        table = new JTable(tableModel);
+        table.setBackground(Color.BLACK);
+        table.setForeground(Color.YELLOW);
+        table.getTableHeader().setBackground(Color.BLACK);
+        table.getTableHeader().setForeground(Color.YELLOW);
+        add(new JScrollPane(table), BorderLayout.CENTER);
+
+        JPanel inputPanel = new JPanel();
+        inputPanel.setLayout(new GridLayout(1, 2));
+        inputPanel.setBackground(Color.BLACK);
+
+        JPanel leftInputPanel = new JPanel();
+        leftInputPanel.setLayout(new GridLayout(5, 1));
+        leftInputPanel.setBackground(Color.BLACK);
+
+        JLabel nameLabel = new JLabel("Nama:");
+        nameLabel.setForeground(Color.YELLOW);
+        leftInputPanel.add(nameLabel);
+
+        nameField = new JTextField();
+        nameField.setBackground(Color.BLACK);
+        nameField.setForeground(Color.YELLOW);
+        leftInputPanel.add(nameField);
+
+        leftInputPanel.add(new JLabel());
+
+        JLabel ageLabel = new JLabel("Umur:");
+        ageLabel.setForeground(Color.YELLOW);
+        leftInputPanel.add(ageLabel);
+
+        ageField = new JTextField();
+        ageField.setBackground(Color.BLACK);
+        ageField.setForeground(Color.YELLOW);
+        leftInputPanel.add(ageField);
+
+        nameField.setPreferredSize(new Dimension(300, 30));
+        ageField.setPreferredSize(new Dimension(300, 30));
+
+        inputPanel.add(leftInputPanel);
+
+        JPanel rightInputPanel = new JPanel(new BorderLayout());
+        rightInputPanel.setBackground(Color.BLACK);
+        addButton = new JButton("Tambahkan");
+        addButton.setPreferredSize(new Dimension(100, 150));
+        addButton.setBackground(Color.BLACK);
+        addButton.setForeground(Color.YELLOW);
+        rightInputPanel.add(addButton, BorderLayout.CENTER);
+        inputPanel.add(rightInputPanel);
+
+        add(inputPanel, BorderLayout.SOUTH);
+
+        addButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                addData();
+            }
+        });
+
+        loadData();
+    }
+
+    private void loadData() {
+        try (Connection conn = DatabaseConnection.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery("SELECT * FROM your_table")) {
+
+            while (rs.next()) {
+                int id = rs.getInt("id");
+                String name = rs.getString("name");
+                int age = rs.getInt("age");
+                tableModel.addRow(new Object[]{id, name, age});
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void addData() {
+        String name = nameField.getText();
+        int age = Integer.parseInt(ageField.getText());
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement("INSERT INTO your_table(name, age) VALUES (?, ?)")) {
+
+            pstmt.setString(1, name);
+            pstmt.setInt(2, age);
+            pstmt.executeUpdate();
+
+            nameField.setText("");
+            ageField.setText("");
+
+            // Refresh table
+            tableModel.setRowCount(0);
+            loadData();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new DatabaseGUI().setVisible(true);
+            }
+        });
+    }
+}
